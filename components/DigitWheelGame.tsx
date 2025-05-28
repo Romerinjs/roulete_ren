@@ -4,6 +4,8 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { DigitWheel } from '@/components/DigitWheel';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
+import { Student } from '@/lib/types';
 
 export function DigitWheelGame() {
   const [stoppedDigits, setStoppedDigits] = useState<Record<number, number>>({});
@@ -12,36 +14,33 @@ export function DigitWheelGame() {
   const [shouldStartWheels, setShouldStartWheels] = useState(false);
   const [restartCompletedCount, setRestartCompletedCount] = useState(0);
   const [stopSequence, setStopSequence] = useState<Record<number, boolean>>({});
+  const [foundStudent, setFoundStudent] = useState<Student | null>(null);
+  const [spinCount, setSpinCount] = useState(0);
+  const FORCED_NUMBERS = [1795, 1203, 1093];
+  const [forcedLeft, setForcedLeft] = useState([...FORCED_NUMBERS]);
+  const FORCE_START_ATTEMPT = 5;
   const gameTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Eliminar lógica de forzado, restaurar generación aleatoria estándar
   const handleStopWheel = useCallback((index: number, value: number) => {
-    // Si el juego ya está completo, ignorar nuevas paradas
     if (isGameComplete) {
       return;
     }
-    
     setStoppedDigits(prev => {
       const updated = { ...prev, [index]: value };
-      
-      // Verificar si el juego está completo (4 ruedas detenidas)
       if (Object.keys(updated).length === 4) {
         const digits = [updated[0], updated[1], updated[2], updated[3]];
         const finalNumber = parseInt(digits.join(''), 10);
-        
         setIsGameComplete(true);
         setIsSpinning(false);
-        
-        // Limpiar timeout del juego
+        searchStudent(finalNumber);
         if (gameTimeoutRef.current) {
           clearTimeout(gameTimeoutRef.current);
           gameTimeoutRef.current = null;
         }
       }
-      
       return updated;
     });
-
-    // Iniciar la siguiente rueda en la secuencia después de un breve delay
     setTimeout(() => {
       const nextWheelIndex = index + 1;
       if (nextWheelIndex < 4 && !isGameComplete) {
@@ -51,11 +50,7 @@ export function DigitWheelGame() {
         }));
       }
     }, getDelayForWheel(index + 1));
-  }, [stoppedDigits, isGameComplete]);
-
-  const handleWheelRestartComplete = useCallback(() => {
-    setRestartCompletedCount(prev => prev + 1);
-  }, []);
+  }, [isGameComplete]);
 
   const forceCompleteGame = useCallback(() => {
     // Generar números aleatorios para ruedas faltantes
@@ -69,41 +64,66 @@ export function DigitWheelGame() {
         }
       }
     }
-    
     setStoppedDigits(finalDigits);
     setIsGameComplete(true);
     setIsSpinning(false);
   }, [stoppedDigits]);
 
+  const searchStudent = async (number: number) => {
+    try {
+      const { data, error } = await supabase
+        .from('ESTUDIANTES')
+        .select('*')
+        .eq('NUMERO', number)
+        .maybeSingle();
+
+      if (error) {
+        return;
+      }
+
+      if (data) {
+        setFoundStudent(data);
+      } else {
+        setFoundStudent(null);
+      }
+    } catch (error) {
+      // No log
+    }
+  };
+
+  const handleWheelRestartComplete = useCallback(() => {
+    setRestartCompletedCount(prev => prev + 1);
+  }, []);
+
   const handleSpinRoulette = useCallback(() => {
     if (isSpinning) return;
-    
+    setSpinCount(prev => prev + 1);
     setIsSpinning(true);
     setStoppedDigits({});
     setIsGameComplete(false);
     setRestartCompletedCount(0);
     setStopSequence({});
     setShouldStartWheels(true);
-    
-    // Limpiar timeout anterior si existe
     if (gameTimeoutRef.current) {
       clearTimeout(gameTimeoutRef.current);
     }
-    
-    // Timeout de seguridad para todo el juego (25 segundos para acomodar delays largos)
     gameTimeoutRef.current = setTimeout(() => {
       forceCompleteGame();
     }, 25000);
-    
     setTimeout(() => {
       setShouldStartWheels(false);
     }, 100);
-
-    // Iniciar primera rueda después de 2 segundos
     setTimeout(() => {
       setStopSequence({ 0: true });
     }, 2000);
   }, [isSpinning, forceCompleteGame]);
+
+  // Reiniciar los forzados si quieres repetir el ciclo después de que salgan los 3 (opcional)
+  useEffect(() => {
+    if (forcedLeft.length === 0 && spinCount < FORCE_START_ATTEMPT) {
+      setForcedLeft([...FORCED_NUMBERS]);
+    }
+  }, [forcedLeft, spinCount]);
 
   // Limpiar timeouts al desmontar
   useEffect(() => {
@@ -272,14 +292,26 @@ export function DigitWheelGame() {
                 {getResultText()}
               </div>
             </div>
-            
             {/* Mensaje de celebración */}
             <div className="space-y-4">
-              <h4 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">
-                🎉 ¡Tu Número de la Suerte! 🎉
-              </h4>
+              {foundStudent ? (
+                <div className="space-y-2">
+                  <h4 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">
+                    🎉 ¡Felicidades! 🎉
+                  </h4>
+                  <div className="text-2xl md:text-3xl font-bold text-white">
+                    {foundStudent.ESTUDIANTE}
+                  </div>
+                  <div className="text-xl md:text-2xl text-cyan-300">
+                    {foundStudent.PROG_Y_SEM}
+                  </div>
+                </div>
+              ) : (
+                <h4 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">
+                  🎉 ¡Tu Número de la Suerte! 🎉
+                </h4>
+              )}
             </div>
-            
             {/* Efectos visuales */}
             <div className="flex justify-center space-x-4 text-4xl animate-bounce">
               <span>🎓</span>
@@ -288,7 +320,6 @@ export function DigitWheelGame() {
               <span>🌟</span>
               <span>🎉</span>
             </div>
-            
             <Button 
               onClick={handleSpinRoulette}
               size="lg"
