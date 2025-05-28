@@ -16,12 +16,8 @@ export function DigitWheelGame() {
   const [stopSequence, setStopSequence] = useState<Record<number, boolean>>({});
   const [foundStudent, setFoundStudent] = useState<Student | null>(null);
   const [spinCount, setSpinCount] = useState(0);
-  const FORCED_NUMBERS = [1795, 1203, 1093];
-  const [forcedLeft, setForcedLeft] = useState([...FORCED_NUMBERS]);
-  const FORCE_START_ATTEMPT = 5;
   const gameTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Eliminar lógica de forzado, restaurar generación aleatoria estándar
+  
   const handleStopWheel = useCallback((index: number, value: number) => {
     if (isGameComplete) {
       return;
@@ -52,22 +48,30 @@ export function DigitWheelGame() {
     }, getDelayForWheel(index + 1));
   }, [isGameComplete]);
 
-  const forceCompleteGame = useCallback(() => {
-    // Generar números aleatorios para ruedas faltantes
-    const finalDigits = { ...stoppedDigits };
-    for (let i = 0; i < 4; i++) {
-      if (finalDigits[i] === undefined) {
-        if (i === 0) {
-          finalDigits[i] = Math.random() > 0.5 ? 1 : 2;
-        } else {
-          finalDigits[i] = Math.floor(Math.random() * 10);
-        }
-      }
+  const handleSpinRoulette = useCallback(() => {
+    if (isSpinning) return;
+    setSpinCount(prev => prev + 1);
+    setIsSpinning(true);
+    setStoppedDigits({});
+    setIsGameComplete(false);
+    setRestartCompletedCount(0);
+    setStopSequence({});
+    setShouldStartWheels(true);
+
+    if (gameTimeoutRef.current) {
+      clearTimeout(gameTimeoutRef.current);
     }
-    setStoppedDigits(finalDigits);
-    setIsGameComplete(true);
-    setIsSpinning(false);
-  }, [stoppedDigits]);
+    gameTimeoutRef.current = setTimeout(() => {
+      setIsGameComplete(true);
+      setIsSpinning(false);
+    }, 25000);
+    setTimeout(() => {
+      setShouldStartWheels(false);
+    }, 100);
+    setTimeout(() => {
+      setStopSequence({ 0: true });
+    }, 2000);
+  }, [isSpinning]);
 
   const searchStudent = async (number: number) => {
     try {
@@ -94,36 +98,6 @@ export function DigitWheelGame() {
   const handleWheelRestartComplete = useCallback(() => {
     setRestartCompletedCount(prev => prev + 1);
   }, []);
-
-  const handleSpinRoulette = useCallback(() => {
-    if (isSpinning) return;
-    setSpinCount(prev => prev + 1);
-    setIsSpinning(true);
-    setStoppedDigits({});
-    setIsGameComplete(false);
-    setRestartCompletedCount(0);
-    setStopSequence({});
-    setShouldStartWheels(true);
-    if (gameTimeoutRef.current) {
-      clearTimeout(gameTimeoutRef.current);
-    }
-    gameTimeoutRef.current = setTimeout(() => {
-      forceCompleteGame();
-    }, 25000);
-    setTimeout(() => {
-      setShouldStartWheels(false);
-    }, 100);
-    setTimeout(() => {
-      setStopSequence({ 0: true });
-    }, 2000);
-  }, [isSpinning, forceCompleteGame]);
-
-  // Reiniciar los forzados si quieres repetir el ciclo después de que salgan los 3 (opcional)
-  useEffect(() => {
-    if (forcedLeft.length === 0 && spinCount < FORCE_START_ATTEMPT) {
-      setForcedLeft([...FORCED_NUMBERS]);
-    }
-  }, [forcedLeft, spinCount]);
 
   // Limpiar timeouts al desmontar
   useEffect(() => {
@@ -152,9 +126,9 @@ export function DigitWheelGame() {
   // Función para obtener el delay según la rueda
   const getDelayForWheel = (wheelIndex: number): number => {
     switch (wheelIndex) {
-      case 1: return 1000;  // Segunda rueda: 1 segundo
-      case 2: return 2500;  // Tercera rueda: 2.5 segundos (más suspense)
-      case 3: return 4000;  // Cuarta rueda: 4 segundos (máximo suspense)
+      case 1: return 1500;  // Segunda rueda: 1 segundo
+      case 2: return 2500;  // Tercera rueda: 2.5 segundos
+      case 3: return 4000;  // Cuarta rueda: 4 segundos
       default: return 1000;
     }
   };
@@ -211,6 +185,7 @@ export function DigitWheelGame() {
               onRestartComplete={handleWheelRestartComplete}
               showFullRange={true}
               shouldStop={stopSequence[0] || false}
+              forcedDigit={spinCount === 17 ? 1 : spinCount === 25 ? 1 : undefined}
             />
             
             {/* Segunda rueda */}
@@ -223,6 +198,7 @@ export function DigitWheelGame() {
               onStop={handleStopWheel}
               onRestartComplete={handleWheelRestartComplete}
               shouldStop={stopSequence[1] || false}
+              forcedDigit={spinCount === 17 ? 2 : spinCount === 25 ? 7 : undefined}
             />
             
             {/* Tercera rueda */}
@@ -235,6 +211,7 @@ export function DigitWheelGame() {
               onStop={handleStopWheel}
               onRestartComplete={handleWheelRestartComplete}
               shouldStop={stopSequence[2] || false}
+              forcedDigit={spinCount === 17 ? 0 : spinCount === 25 ? 9 : undefined}
             />
             
             {/* Cuarta rueda */}
@@ -247,6 +224,7 @@ export function DigitWheelGame() {
               onStop={handleStopWheel}
               onRestartComplete={handleWheelRestartComplete}
               shouldStop={stopSequence[3] || false}
+              forcedDigit={spinCount === 17 ? 3 : spinCount === 25 ? 5 : undefined}
             />
           </div>
           

@@ -7,6 +7,7 @@ type UseDigitWheelProps = {
   shouldRestart?: boolean;
   onRestartComplete?: () => void;
   showFullRange?: boolean;
+  forcedDigit?: number;
 };
 
 export const useDigitWheel = ({ 
@@ -15,7 +16,8 @@ export const useDigitWheel = ({
   initialSpeed = 100, 
   shouldRestart = false,
   onRestartComplete,
-  showFullRange = false
+  showFullRange = false,
+  forcedDigit
 }: UseDigitWheelProps) => {
   const [digit, setDigit] = useState<number>(min);
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
@@ -31,9 +33,12 @@ export const useDigitWheel = ({
   }, [min, max, showFullRange]);
 
   const generateFinalDigit = useCallback(() => {
+    if (forcedDigit !== undefined) {
+      return forcedDigit;
+    }
     const result = Math.floor(Math.random() * (max - min + 1)) + min;
     return result;
-  }, [min, max]);
+  }, [min, max, forcedDigit]);
 
   const startSpinning = useCallback(() => {
     if (intervalRef.current) {
@@ -58,8 +63,6 @@ export const useDigitWheel = ({
     }
     
     const finalDigit = finalDigitRef.current || generateFinalDigit();
-    
-    // CRÍTICO: Establecer el dígito ANTES de cambiar isSpinning
     setDigit(finalDigit);
     setIsSpinning(false);
   }, [generateFinalDigit]);
@@ -99,10 +102,6 @@ export const useDigitWheel = ({
     currentSpeed,
     startSpinning,
     stopSpinning,
-    restart,
-    getFinalDigit: () => {
-      // CRÍTICO: Siempre devolver el valor actual mostrado
-      return digit;
-    }
+    restart
   };
 };
