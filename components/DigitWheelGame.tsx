@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { Student } from '@/lib/types';
+import { useSlotMachineAudio } from '@/lib/hooks/useSlotMachineAudio';
 
 export function DigitWheelGame() {
   const [stoppedDigits, setStoppedDigits] = useState<Record<number, number>>({});
@@ -18,6 +19,9 @@ export function DigitWheelGame() {
   const [spinCount, setSpinCount] = useState(0);
   const gameTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Hook para manejar el audio de slot machine
+  const { playSound, stopSound, restartSound } = useSlotMachineAudio();
+  
   const handleStopWheel = useCallback((index: number, value: number) => {
     if (isGameComplete) {
       return;
@@ -29,6 +33,8 @@ export function DigitWheelGame() {
         const finalNumber = parseInt(digits.join(''), 10);
         setIsGameComplete(true);
         setIsSpinning(false);
+        // Detener el sonido cuando el juego termine
+        stopSound();
         searchStudent(finalNumber);
         if (gameTimeoutRef.current) {
           clearTimeout(gameTimeoutRef.current);
@@ -46,10 +52,11 @@ export function DigitWheelGame() {
         }));
       }
     }, getDelayForWheel(index + 1));
-  }, [isGameComplete]);
+  }, [isGameComplete, stopSound]);
 
   const handleSpinRoulette = useCallback(() => {
     if (isSpinning) return;
+    
     setSpinCount(prev => prev + 1);
     setIsSpinning(true);
     setStoppedDigits({});
@@ -58,12 +65,23 @@ export function DigitWheelGame() {
     setStopSequence({});
     setShouldStartWheels(true);
 
+    // Reproducir sonido de slot machine
+    if (spinCount > 0) {
+      // Si es un reinicio (botón reload), reiniciar el sonido
+      restartSound();
+    } else {
+      // Si es la primera vez, solo reproducir
+      playSound();
+    }
+
     if (gameTimeoutRef.current) {
       clearTimeout(gameTimeoutRef.current);
     }
     gameTimeoutRef.current = setTimeout(() => {
       setIsGameComplete(true);
       setIsSpinning(false);
+      // Detener sonido por timeout
+      stopSound();
     }, 25000);
     setTimeout(() => {
       setShouldStartWheels(false);
@@ -71,7 +89,7 @@ export function DigitWheelGame() {
     setTimeout(() => {
       setStopSequence({ 0: true });
     }, 2000);
-  }, [isSpinning]);
+  }, [isSpinning, spinCount, playSound, restartSound, stopSound]);
 
   const searchStudent = async (number: number) => {
     try {
@@ -134,46 +152,35 @@ export function DigitWheelGame() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex flex-col items-center justify-center p-4">
-      {/* Header principal */}
-      <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 mb-4">
-          🎓 DÍA DEL ESTUDIANTE 🎓
-        </h1>
-        <h2 className="text-xl md:text-2xl text-cyan-300 font-semibold mb-2">
-          Instituto Tecnológico del Putumayo
-        </h2>
-        <div className="w-32 h-1 bg-gradient-to-r from-yellow-400 to-orange-500 mx-auto rounded-full"></div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex flex-col items-center justify-center p-2 md:p-4">
+      
+      {/* Layout principal optimizado y centrado */}
+      <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8 lg:gap-12 w-full max-w-6xl">
+        
+        {/* Espacio izquierdo para balancear */}
+        <div className="hidden md:flex flex-col items-center justify-center w-24 lg:w-32">
+          {/* Espacio vacío para balancear el botón derecho */}
+        </div>
 
-      {/* Contenedor principal de la ruleta */}
-      <div className={cn(
-        "bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-lg p-8 md:p-12 rounded-3xl shadow-2xl border border-cyan-500/30 transition-all duration-700",
-        isGameComplete ? "scale-105 shadow-cyan-500/50" : "",
-        isSpinning ? "shadow-purple-500/50" : ""
-      )}>
-        
-        {/* Título dinámico del juego */}
-        <h3 className="text-2xl md:text-3xl text-center mb-8 font-bold">
-          {isSpinning ? (
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 animate-pulse">
-              🎲 ¡Girando la Ruleta de la Suerte! 🎲
-            </span>
-          ) : isGameComplete ? (
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">
-              🏆 ¡Tu Número de la Suerte! 🏆
-            </span>
-          ) : (
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
-              🎯 Ruleta de la Suerte Estudiantil 🎯
-            </span>
-          )}
-        </h3>
-        
-        {/* Layout principal con ruedas y botón */}
-        <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12 mb-12">
-          {/* Contenedor de ruedas */}
-          <div className="flex flex-row justify-center gap-6 md:gap-8">
+        {/* Contenedor principal de la ruleta - con título integrado */}
+        <div className={cn(
+          "bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-lg p-6 md:p-8 lg:p-10 rounded-3xl shadow-2xl border border-cyan-500/30 transition-all duration-700 flex-1 max-w-4xl",
+          isGameComplete ? "scale-105 shadow-cyan-500/50" : "",
+          isSpinning ? "shadow-purple-500/50" : ""
+        )}>
+          
+          {/* Header dentro del contenedor - más compacto y centrado */}
+          <div className="text-center mb-6 md:mb-8">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 mb-1 md:mb-2">
+              🎓 DÍA DEL ESTUDIANTE 🎓
+            </h1>
+            <h3 className="text-sm md:text-base lg:text-lg text-cyan-300 font-semibold mb-3 md:mb-4">
+              Instituto Tecnológico del Putumayo
+            </h3>
+          </div>
+          
+          {/* Contenedor de ruedas - perfectamente centrado */}
+          <div className="flex flex-row justify-center gap-4 md:gap-6 lg:gap-8 mb-6 md:mb-8">
             {/* Primera rueda */}
             <DigitWheel 
               min={1} 
@@ -228,85 +235,87 @@ export function DigitWheelGame() {
             />
           </div>
           
-          {/* Botón de girar en el lado derecho */}
-          {!isSpinning && !isGameComplete && (
-            <div className="flex flex-col items-center justify-center lg:ml-8">
-              <Button 
-                onClick={handleSpinRoulette}
-                size="lg"
-                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-lg lg:text-xl px-8 lg:px-12 py-3 lg:py-4 rounded-2xl shadow-lg hover:shadow-emerald-500/50 transition-all duration-300 transform hover:scale-110 border-2 border-emerald-400/50 whitespace-nowrap"
-              >
-                🎲 ¡Girar Ruleta! 🎲
-              </Button>
+          {/* Indicador de progreso durante el giro */}
+          {isSpinning && (
+            <div className="text-center space-y-3 md:space-y-4">
+              <div className="inline-flex items-center gap-3 md:gap-4 text-cyan-400">
+                <div className="animate-spin rounded-full h-6 w-6 md:h-8 md:w-8 border-b-2 md:border-b-3 border-cyan-400"></div>
+                <span className="text-lg md:text-xl font-bold">¡Las ruedas están girando!</span>
+                <div className="animate-spin rounded-full h-6 w-6 md:h-8 md:w-8 border-b-2 md:border-b-3 border-cyan-400"></div>
+              </div>
+              <div className="flex justify-center space-x-2">
+                <div className="w-2 h-2 md:w-3 md:h-3 bg-purple-500 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 md:w-3 md:h-3 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                <div className="w-2 h-2 md:w-3 md:h-3 bg-cyan-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+              </div>
+            </div>
+          )}
+          
+          {/* Resultado final - textos reajustados */}
+          {isGameComplete && (
+            <div className="text-center space-y-3 md:space-y-4 animate-fade-in">
+              {/* Mensaje de celebración - más pequeño */}
+              <div className="space-y-2 md:space-y-3">
+                {foundStudent ? (
+                  <div className="space-y-2 md:space-y-3">
+                    {/* Nombre del estudiante - MÁS GRANDE */}
+                    <div className="text-xl md:text-2xl lg:text-3xl xl:text-4xl font-black text-white drop-shadow-xl">
+                      {foundStudent.ESTUDIANTE}
+                    </div>
+                    <div className="text-xl md:text-2xl lg:text-3xl text-cyan-300 font-semibold">
+                      {foundStudent.PROG_Y_SEM}
+                    </div>
+                  </div>
+                ) : (
+                  <h4 className="text-lg md:text-xl lg:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">                   
+                  </h4>
+                )}
+              </div>
+              {/* Efectos visuales - más pequeños */}
+              <div className="flex justify-center space-x-2 md:space-x-3 text-lg md:text-xl lg:text-2xl animate-bounce">
+                <span className="text-yellow-400">🎉¡FELICIDADES GANADOR/A!🎉</span>
+              </div>
             </div>
           )}
         </div>
-        
-        {/* Indicador de progreso durante el giro */}
-        {isSpinning && !isGameComplete && (
-          <div className="text-center space-y-4">
-            <div className="inline-flex items-center gap-4 text-cyan-400">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-3 border-cyan-400"></div>
-              <span className="text-xl font-bold">¡Las ruedas están girando!</span>
-              <div className="animate-spin rounded-full h-8 w-8 border-b-3 border-cyan-400"></div>
-            </div>
-            <div className="flex justify-center space-x-2">
-              <div className="w-3 h-3 bg-purple-500 rounded-full animate-bounce"></div>
-              <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-              <div className="w-3 h-3 bg-cyan-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-            </div>
-          </div>
-        )}
-        
-        {/* Resultado final espectacular */}
-        {isGameComplete && (
-          <div className="text-center space-y-8 animate-fade-in">
-            {/* Número ganador gigante */}
-            <div className="relative">
-              <div className="text-8xl md:text-9xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 animate-pulse drop-shadow-2xl">
-                {getResultText()}
-              </div>
-              <div className="absolute inset-0 text-8xl md:text-9xl font-black text-yellow-400/20 blur-lg">
-                {getResultText()}
-              </div>
-            </div>
-            {/* Mensaje de celebración */}
-            <div className="space-y-4">
-              {foundStudent ? (
-                <div className="space-y-2">
-                  <h4 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">
-                    🎉 ¡Felicidades! 🎉
-                  </h4>
-                  <div className="text-2xl md:text-3xl font-bold text-white">
-                    {foundStudent.ESTUDIANTE}
-                  </div>
-                  <div className="text-xl md:text-2xl text-cyan-300">
-                    {foundStudent.PROG_Y_SEM}
-                  </div>
-                </div>
-              ) : (
-                <h4 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">
-                  🎉 ¡Tu Número de la Suerte! 🎉
-                </h4>
-              )}
-            </div>
-            {/* Efectos visuales */}
-            <div className="flex justify-center space-x-4 text-4xl animate-bounce">
-              <span>🎓</span>
-              <span>✨</span>
-              <span>🎊</span>
-              <span>🌟</span>
-              <span>🎉</span>
-            </div>
+
+        {/* Botones circulares a la derecha - mejor posicionados */}
+        <div className="flex flex-row md:flex-col items-center justify-center gap-4 md:gap-6 w-24 lg:w-32">
+          {/* Botón circular de girar (cuando no está girando y no ha terminado) */}
+          {!isSpinning && !isGameComplete && (
             <Button 
               onClick={handleSpinRoulette}
-              size="lg"
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-xl px-12 py-4 rounded-2xl shadow-lg hover:shadow-purple-500/50 transition-all duration-300 transform hover:scale-110 border-2 border-purple-400/50 mt-8"
+              className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-lg md:text-xl shadow-lg hover:shadow-emerald-500/50 transition-all duration-300 transform hover:scale-110 border-2 border-emerald-400/50 flex items-center justify-center"
             >
-              🔄 ¡Girar de Nuevo! 🔄
+              GIRAR
             </Button>
-          </div>
-        )}
+          )}
+          
+          {/* Botón circular de girar de nuevo (cuando ha terminado) */}
+          {isGameComplete && (
+            <Button 
+              onClick={handleSpinRoulette}
+              className="w-20 h-20 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-sm md:text-base lg:text-lg shadow-lg hover:shadow-purple-500/50 transition-all duration-300 transform hover:scale-110 border-2 border-purple-400/50 flex items-center justify-center"
+            >
+              <svg 
+                width="32" 
+                height="32" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10"
+              >
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                <path d="M3 21v-5h5"/>
+              </svg>
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

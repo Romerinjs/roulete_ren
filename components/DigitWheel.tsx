@@ -92,8 +92,8 @@ export const DigitWheel = ({
   }, [shouldStop, isSpinning, stopSpinning]);
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="relative w-28 h-40 md:w-36 md:h-52 bg-gradient-to-br from-gray-900 to-black rounded-2xl border-2 overflow-hidden transition-all duration-300 border-cyan-400/60 shadow-lg shadow-cyan-500/30">
+    <div className="flex flex-col items-center gap-3 md:gap-4">
+      <div className="relative w-32 h-48 md:w-40 md:h-60 lg:w-48 lg:h-72 bg-gradient-to-br from-gray-900 to-black rounded-2xl border-2 overflow-hidden transition-all duration-300 border-cyan-400/60 shadow-lg shadow-cyan-500/30">
         {/* Contenedor de números con scroll vertical */}
         <div 
           ref={wheelRef}
@@ -103,7 +103,7 @@ export const DigitWheel = ({
             <div
               key={`${num}-${idx}`}
               className={cn(
-                "flex items-center justify-center w-full h-full text-4xl md:text-7xl font-black transition-all duration-200",
+                "flex items-center justify-center w-full h-full text-5xl md:text-7xl lg:text-8xl xl:text-9xl font-black transition-all duration-200",
                 idx === 3 
                   ? "text-transparent bg-clip-text bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 scale-110 z-10 drop-shadow-lg" 
                   : idx === 2 || idx === 4
@@ -111,7 +111,7 @@ export const DigitWheel = ({
                     : "text-gray-600 scale-75"
               )}
               style={{
-                transform: `translateY(${(idx - 3) * 35}px)`,
+                transform: `translateY(${(idx - 3) * 40}px)`,
                 opacity: Math.abs(idx - 3) === 0 ? 1 : Math.max(0.2, 1 - Math.abs(idx - 3) * 0.25)
               }}
             >
@@ -122,8 +122,8 @@ export const DigitWheel = ({
 
         {/* Líneas guía y efectos visuales */}
         <div className="absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-yellow-400 to-transparent transform -translate-y-1/2 z-20" />
-        <div className="absolute inset-x-0 top-1/2 h-10 border-t border-b border-yellow-400/40 transform -translate-y-5 z-20 bg-yellow-400/5" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/60 pointer-events-none z-30" />
+        <div className="absolute inset-x-0 top-1/2 h-12 md:h-14 lg:h-16 border-t border-b border-yellow-400/40 transform -translate-y-6 md:-translate-y-7 lg:-translate-y-8 z-20 bg-yellow-400/5" />
+        
         <div className="absolute inset-x-0 top-3 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none z-30" />
         
         {/* Glow effect cuando está girando */}
@@ -134,7 +134,7 @@ export const DigitWheel = ({
       
       {/* Indicador de estado */}
       <div className={cn(
-        "px-4 py-2 rounded-full text-sm font-bold transition-all duration-300 border-2",
+        "px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold transition-all duration-300 border-2",
         isSpinning 
           ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border-cyan-400/50 shadow-lg shadow-cyan-500/30 animate-pulse" 
           : "bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-300 border-emerald-400/50 shadow-lg shadow-emerald-500/30"
