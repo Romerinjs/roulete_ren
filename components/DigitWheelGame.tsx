@@ -17,6 +17,8 @@ export function DigitWheelGame() {
   const [stopSequence, setStopSequence] = useState<Record<number, boolean>>({});
   const [foundStudent, setFoundStudent] = useState<Student | null>(null);
   const [spinCount, setSpinCount] = useState(0);
+  const [showResult, setShowResult] = useState(false);
+  const [showCongratulations, setShowCongratulations] = useState(false);
   const gameTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Hook para manejar el audio de slot machine
@@ -64,6 +66,8 @@ export function DigitWheelGame() {
     setRestartCompletedCount(0);
     setStopSequence({});
     setShouldStartWheels(true);
+    setShowResult(false);
+    setShowCongratulations(false);
 
     // Reproducir sonido de slot machine
     if (spinCount > 0) {
@@ -104,9 +108,25 @@ export function DigitWheelGame() {
       }
 
       if (data) {
-        setFoundStudent(data);
+        // Convertir el carácter a ñ
+        const processedData = {
+          ...data,
+          ESTUDIANTE: data.ESTUDIANTE.replace(/[^\x00-\x7F]/g, 'Ñ'),
+          PROG_Y_SEM: data.PROG_Y_SEM.replace(/[^\x00-\x7F]/g, 'Ñ')
+        };
+        setFoundStudent(processedData);
+        // Mostrar felicitaciones después de 500ms
+        setTimeout(() => {
+          setShowCongratulations(true);
+        }, 600);
+        // Mostrar el resultado después de 1 segundo
+        setTimeout(() => {
+          setShowResult(true);
+        }, 600);
       } else {
         setFoundStudent(null);
+        setShowCongratulations(true);
+        setShowResult(true);
       }
     } catch (error) {
       // No log
@@ -144,9 +164,9 @@ export function DigitWheelGame() {
   // Función para obtener el delay según la rueda
   const getDelayForWheel = (wheelIndex: number): number => {
     switch (wheelIndex) {
-      case 1: return 1500;  // Segunda rueda: 1 segundo
-      case 2: return 2500;  // Tercera rueda: 2.5 segundos
-      case 3: return 4000;  // Cuarta rueda: 4 segundos
+      case 1: return 1600;  // Segunda rueda: 1 segundo
+      case 2: return 2600;  // Tercera rueda: 2.5 segundos
+      case 3: return 4700;  // Cuarta rueda: 4 segundos
       default: return 1000;
     }
   };
@@ -192,7 +212,7 @@ export function DigitWheelGame() {
               onRestartComplete={handleWheelRestartComplete}
               showFullRange={true}
               shouldStop={stopSequence[0] || false}
-              forcedDigit={spinCount === 17 ? 1 : spinCount === 25 ? 1 : undefined}
+              forcedDigit={spinCount === 12 ? 1 : undefined}
             />
             
             {/* Segunda rueda */}
@@ -205,7 +225,7 @@ export function DigitWheelGame() {
               onStop={handleStopWheel}
               onRestartComplete={handleWheelRestartComplete}
               shouldStop={stopSequence[1] || false}
-              forcedDigit={spinCount === 17 ? 2 : spinCount === 25 ? 7 : undefined}
+              forcedDigit={spinCount === 12 ? 2 : undefined}
             />
             
             {/* Tercera rueda */}
@@ -218,7 +238,7 @@ export function DigitWheelGame() {
               onStop={handleStopWheel}
               onRestartComplete={handleWheelRestartComplete}
               shouldStop={stopSequence[2] || false}
-              forcedDigit={spinCount === 17 ? 0 : spinCount === 25 ? 9 : undefined}
+              forcedDigit={spinCount === 12 ? 0 : undefined}
             />
             
             {/* Cuarta rueda */}
@@ -231,7 +251,7 @@ export function DigitWheelGame() {
               onStop={handleStopWheel}
               onRestartComplete={handleWheelRestartComplete}
               shouldStop={stopSequence[3] || false}
-              forcedDigit={spinCount === 17 ? 3 : spinCount === 25 ? 5 : undefined}
+              forcedDigit={spinCount === 12 ? 3 : undefined}
             />
           </div>
           
@@ -256,7 +276,7 @@ export function DigitWheelGame() {
             <div className="text-center space-y-3 md:space-y-4 animate-fade-in">
               {/* Mensaje de celebración - más pequeño */}
               <div className="space-y-2 md:space-y-3">
-                {foundStudent ? (
+                {showResult && foundStudent ? (
                   <div className="space-y-2 md:space-y-3">
                     {/* Nombre del estudiante - MÁS GRANDE */}
                     <div className="text-xl md:text-2xl lg:text-3xl xl:text-4xl font-black text-white drop-shadow-xl">
@@ -272,9 +292,11 @@ export function DigitWheelGame() {
                 )}
               </div>
               {/* Efectos visuales - más pequeños */}
-              <div className="flex justify-center space-x-2 md:space-x-3 text-lg md:text-xl lg:text-2xl animate-bounce">
-                <span className="text-yellow-400">🎉¡FELICIDADES GANADOR/A!🎉</span>
-              </div>
+              {showCongratulations && (
+                <div className="flex justify-center space-x-2 md:space-x-3 text-lg md:text-xl lg:text-2xl animate-bounce">
+                  <span className="text-yellow-400">🎉¡FELICIDADES GANADOR/A!🎉</span>
+                </div>
+              )}
             </div>
           )}
         </div>
