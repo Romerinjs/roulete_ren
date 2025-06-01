@@ -212,7 +212,6 @@ export function DigitWheelGame() {
               onRestartComplete={handleWheelRestartComplete}
               showFullRange={true}
               shouldStop={stopSequence[0] || false}
-              forcedDigit={spinCount === 12 ? 1 : undefined}
             />
             
             {/* Segunda rueda */}
@@ -225,7 +224,6 @@ export function DigitWheelGame() {
               onStop={handleStopWheel}
               onRestartComplete={handleWheelRestartComplete}
               shouldStop={stopSequence[1] || false}
-              forcedDigit={spinCount === 12 ? 2 : undefined}
             />
             
             {/* Tercera rueda */}
@@ -238,7 +236,6 @@ export function DigitWheelGame() {
               onStop={handleStopWheel}
               onRestartComplete={handleWheelRestartComplete}
               shouldStop={stopSequence[2] || false}
-              forcedDigit={spinCount === 12 ? 0 : undefined}
             />
             
             {/* Cuarta rueda */}
@@ -251,7 +248,6 @@ export function DigitWheelGame() {
               onStop={handleStopWheel}
               onRestartComplete={handleWheelRestartComplete}
               shouldStop={stopSequence[3] || false}
-              forcedDigit={spinCount === 12 ? 3 : undefined}
             />
           </div>
           
